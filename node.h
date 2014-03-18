@@ -6,6 +6,7 @@
 #include <cmath>
 #include <string>
 #include <sstream>
+#include <stdio.h>
 
 using namespace std;
 
@@ -15,13 +16,14 @@ public:
     node(vector < float > values);
     node(int attrIndex, float median);
     node(node * parent);
-    float distanceTo(node * target);
+    ~node();
+    float distanceTo(node * target);    
     node * getParent();
     void addChildren();
-    vector < float > getValues(); 
-    void setValues(vector < float > values);
+    vector < float > getValues();     
+    void setValues(vector < float > values);    
     node * getLeft();
-    node * getRight();
+    node * getRight();    
     bool isLeaf();
     float getMedian();
     int getAttrIndex();
@@ -43,6 +45,7 @@ private:
     int attrIndex;
 
     bool visited;
+    bool leaf;
 };
 
 #endif	/* NODE_H */

@@ -3,17 +3,32 @@
 node::node(vector < float > values) {
     this->values = values;
     this->visited = false;
+    this->left = NULL;
+    this->right = NULL;
+    this->parent = NULL;
 }
 
 node::node(int attrIndex, float median) {
     this->median = median;
     this->attrIndex = attrIndex;
     this->visited = false;
+    this->left = NULL;
+    this->right = NULL;
+    this->parent = NULL;
 }
 
 node::node(node * parent) {
     this->parent = parent;
     this->visited = false;
+    this->left = NULL;
+    this->right = NULL;
+}
+
+node::~node() {
+    if (this->left != NULL)
+        delete left;
+    if (this->right != NULL)
+        delete right;
 }
 
 float node::distanceTo(node * target) {
@@ -34,10 +49,10 @@ node * node::getParent() {
 }
 
 void node::addChildren() {
-    node left(this);
-    this->left = &left;
-    node right(this);
-    this->right = &right;
+    node * left = new node(this);
+    this->left = left;
+    node * right = new node(this);
+    this->right = right;
 }
 
 vector < float > node::getValues() {
@@ -92,17 +107,17 @@ bool node::isVisited() {
 string node::toString() {
     string result;
     ostringstream temp;
-    if (this->isLeaf()) {
-        result = "({";
-        for (int i = 0; i < this->values.size() - 1; i++) {
-            temp << this->values[i];
-            result += temp.str() + ", ";
-        }
+    if (this->isLeaf() && this->values.size() != 0) {
+        result = "[";
+        for (int i = 0; i < this->values.size() - 1; i++)
+            temp << this->values[i] << ", ";
         temp << this->values[this->values.size() - 1];
-        result += temp.str() + "})";
-    } else
+        result += temp.str() + "]";
+    }
+    else {
         temp << this->attrIndex << ", " << this->median;
-    result = "(" + temp.str() + ")";
+        result = "(" + temp.str() + ")";
+    }
 
     return result;
 }
