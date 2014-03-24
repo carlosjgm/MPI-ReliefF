@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <cstdlib>
 #include "node.h"
+#include "kdtree.h"
 
 using namespace std;
 
@@ -56,8 +57,33 @@ int main(int argc, char** argv) {
     printf("\n");
     node test2(leftvalues);
     printf("new node: %s\n", test2.toString().c_str());
-    printf("%s distance to %s = %f",test.getLeft()->toString().c_str(),test.getRight()->toString().c_str(),test.getLeft()->distanceTo(test.getRight()));
+    printf("%s distance to %s = %f\n",test.getLeft()->toString().c_str(),test.getRight()->toString().c_str(),test.getLeft()->distanceTo(test.getRight()));
 
+    vector< vector<float> > dataset(5);
+    printf("dataset.size() = %d\n",dataset.size());
+    for(int i=0; i<5; i++){
+        printf("dataset[%d] = (",i);
+        for(int j=0; j<3; j++){
+            dataset[i].push_back((float) ((i*(j+1))%5));
+            printf("% g",(float) ((i*(j+1))%5));
+        }
+        printf(" )\n");
+    }
+    printf("\n");
+    
+    printf("swap a=%g, b=%g: ", dataset[0][0], dataset[2][0]);
+    swap(&dataset[0][0],&dataset[2][0]);
+    printf("a=%g, b=%g\n",dataset[0][0],dataset[2][0]);
+    
+    
+    printf("fingMedian test: all values should be equal to 2\n");
+    for(int i=0; i<3; i++)
+        printf("median[%d]=%g\n",i,findMedian(dataset, i));
+    printf("\n");
+    
+    
+    
+    
     return (EXIT_SUCCESS);
 }
 
