@@ -23,7 +23,7 @@ void unvisitNodes(vector<node> * nodes);
 //
 vector< node > kNeighborSearch(vector<node> nodes, vector<float> observation, int k);
 
-string toString(vector<node> nodes);
+string treeToString(vector<node> nodes);
 
 
 #endif	/* KDTREE_H */

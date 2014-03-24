@@ -63,4 +63,9 @@ void unvisitNodes(vector<node> * nodes) {
 
 vector< node > kNeighborSearch(vector<node> nodes, vector<float> observation, int k);
 
-string toString(vector<node> nodes);
+string treeToString(vector<node> nodes){
+    string result;
+    for(int i = 0; i < nodes.size(); i++)
+        result+=nodes[i].toString() + "\n";
+    return result;   
+}

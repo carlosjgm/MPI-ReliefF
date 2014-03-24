@@ -96,6 +96,10 @@ int main(int argc, char** argv) {
     unvisitNodes(&testnodes);
     for (int i = 0; i < testnodes.size(); i++)
         printf("after testnodes[%d].isVisited()=%d\n", i, testnodes[i].isVisited());
+    
+    
+    printf("kdtree to string test:\n%s",treeToString(testnodes).c_str());
+    
       
    return (EXIT_SUCCESS);
 }
