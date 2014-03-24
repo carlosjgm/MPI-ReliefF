@@ -16,7 +16,7 @@ public:
     node(vector < float > values);
     node(int attrIndex, float median);
     node(node * parent);
-    ~node();
+    node();
     float distanceTo(node * target);    
     node * getParent();
     void addChildren();

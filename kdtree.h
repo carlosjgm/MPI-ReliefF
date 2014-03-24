@@ -16,7 +16,7 @@ vector<node> kdTree(vector< vector<float> > dataset, int m);
 void aux_kdtree(int rootId, vector< vector<float> > dataset, int attrIndex, int m);
 float findMedian(vector< vector<float> > dataset, int attrIndex);
 void swap(float * a, float * b);
-void unvisitNodes(vector<node> nodes);
+void unvisitNodes(vector<node> * nodes);
 
 //
 // function used for searching in the kdtree

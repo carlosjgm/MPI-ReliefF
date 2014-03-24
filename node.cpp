@@ -24,11 +24,11 @@ node::node(node * parent) {
     this->right = NULL;
 }
 
-node::~node() {
-    if (this->left != NULL)
-        delete left;
-    if (this->right != NULL)
-        delete right;
+node::node() {
+    this->visited = false;
+    this->left = NULL;
+    this->right = NULL;
+    this->parent = NULL;
 }
 
 float node::distanceTo(node * target) {

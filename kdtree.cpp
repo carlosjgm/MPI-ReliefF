@@ -55,7 +55,11 @@ void swap(float * a, float * b) {
     *a = *b;
     *b = temp;
 }
-void unvisitNodes(vector<node> nodes);
+
+void unvisitNodes(vector<node> * nodes) {
+    for (int i = 0; i < nodes->size(); i++)
+        nodes->at(i).unvisit();    
+}
 
 vector< node > kNeighborSearch(vector<node> nodes, vector<float> observation, int k);
 
