@@ -6,14 +6,15 @@
 #include <string>
 #include <sstream>
 #include <stdio.h>
+#include <queue>
 
 using namespace std;
 
 //
 // functions used for building kdTree
 //
-vector<node> kdTree(vector< vector<float> > dataset, int m);
-void aux_kdtree(int rootId, vector< vector<float> > dataset, int attrIndex, int m);
+node kdTree(vector< vector<float> > dataset, int m);
+void aux_kdtree(node * root, vector< vector<float> > dataset, int attrIndex, int m);
 float findMedian(vector< vector<float> > dataset, int attrIndex);
 void swap(float * a, float * b);
 void unvisitNodes(vector<node> * nodes);
@@ -23,7 +24,7 @@ void unvisitNodes(vector<node> * nodes);
 //
 vector< node > kNeighborSearch(vector<node> nodes, vector<float> observation, int k);
 
-string treeToString(vector<node> nodes);
+string treeToString(node root);
 
 
 #endif	/* KDTREE_H */

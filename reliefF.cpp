@@ -63,29 +63,7 @@ int main(int argc, char** argv) {
     printf("new node: %s\n", test2.toString().c_str());
     printf("%s distance to %s = %f\n", test.getLeft()->toString().c_str(), test.getRight()->toString().c_str(), test.getLeft()->distanceTo(test.getRight()));
 
-    vector< vector<float> > dataset(5);
-    printf("dataset.size() = %d\n", dataset.size());
-    for (int i = 0; i < 5; i++) {
-        printf("dataset[%d] = (", i);
-        for (int j = 0; j < 3; j++) {
-            dataset[i].push_back((float) ((i * (j + 1)) % 5));
-            printf("% g", (float) ((i * (j + 1)) % 5));
-        }
-        printf(" )\n");
-    }
-    printf("\n");
-
-    printf("swap a=%g, b=%g: ", dataset[0][0], dataset[2][0]);
-    swap(&dataset[0][0], &dataset[2][0]);
-    printf("a=%g, b=%g\n", dataset[0][0], dataset[2][0]);
-
-
-    printf("fingMedian test: all values should be equal to 2\n");
-    for (int i = 0; i < 3; i++)
-        printf("median[%d]=%g\n", i, findMedian(dataset, i));
-    printf("\n");
-
-
+    //TEST UNVISITNODES
     printf("unvisit nodes test:\n");
     vector<node> testnodes;
     testnodes.push_back(test);
@@ -97,9 +75,41 @@ int main(int argc, char** argv) {
     for (int i = 0; i < testnodes.size(); i++)
         printf("after testnodes[%d].isVisited()=%d\n", i, testnodes[i].isVisited());
     
+    //TEST TREETOSTRING
+    printf("test kdtree to string test:\n%s",treeToString(test).c_str());
     
-    printf("kdtree to string test:\n%s",treeToString(testnodes).c_str());
     
-      
+    //DEFINE TEST DATASET
+    vector< vector<float> > dataset(6);
+    printf("dataset.size() = %d\n", dataset.size());
+    for (int i = 0; i < 6; i++) {
+        printf("dataset[%d] = (", i);
+        for (int j = 0; j < 3; j++) {
+            dataset[i].push_back((float) ((i * (j + 1)) % 6));
+            printf("% g", (float) ((i * (j + 1)) % 6));
+        }
+        printf(" )\n");
+    }
+    printf("\n");
+    /*//TEST SWAP
+    printf("swap a=%g, b=%g: ", dataset[0][0], dataset[1][0]);
+    swap(&dataset[0][0], &dataset[1][0]);
+    printf("a=%g, b=%g\n", dataset[0][0], dataset[1][0]);*/
+    
+    //TEST FIND MEDIAN
+    printf("findMedian test: all values should be equal to 2\n");
+    for (int i = 0; i < 3; i++)
+        printf("median[%d]=%g\n", i, findMedian(dataset, i));
+    printf("\n");
+
+    //TEST KDTREE
+    printf("build kdtree test:\n");
+    node root;
+    int m = dataset[0].size();
+    printf("number of attributes = %d\n",m);
+    root = kdTree(dataset, m);
+    printf("resulting kdtree:\n%s",treeToString(root).c_str());
+    
+    
    return (EXIT_SUCCESS);
 }

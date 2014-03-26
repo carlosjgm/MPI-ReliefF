@@ -45,7 +45,6 @@ private:
     int attrIndex;
 
     bool visited;
-    bool leaf;
 };
 
 #endif	/* NODE_H */
