@@ -65,29 +65,33 @@ int main(int argc, char** argv) {
 
     //TEST UNVISITNODES
     printf("unvisit nodes test:\n");
-    vector<node> testnodes;
-    testnodes.push_back(test);
-    testnodes.push_back(test2);
-    testnodes[0].visit(); testnodes[1].visit();
-    for (int i = 0; i < testnodes.size(); i++)
-        printf("before testnodes[%d].isVisited()=%d\n", i, testnodes[i].isVisited());
-    unvisitNodes(&testnodes);
-    for (int i = 0; i < testnodes.size(); i++)
-        printf("after testnodes[%d].isVisited()=%d\n", i, testnodes[i].isVisited());
-    
+    test.visit();
+    test.getLeft()->visit();
+    test.getRight()->visit();
+    printf("before unvisit nodes: %d %d %d\n",test.isVisited(),test.getLeft()->isVisited(),test.getRight()->isVisited());
+    unvisitNodes(&test);
+    printf("after unvisit nodes: %d %d %d\n",test.isVisited(),test.getLeft()->isVisited(),test.getRight()->isVisited());
+    printf("\n");
+
     //TEST TREETOSTRING
-    printf("test kdtree to string test:\n%s",treeToString(test).c_str());
-    
-    
+    printf("test kdtree to string test:\n%s", treeToString(test).c_str());
+
+
     //DEFINE TEST DATASET
-    vector< vector<float> > dataset(6);
+    int n = 8;
+    vector< vector<float> > dataset(n);
     printf("dataset.size() = %d\n", dataset.size());
-    for (int i = 0; i < 6; i++) {
-        printf("dataset[%d] = (", i);
+    for (int i = 0; i < n - 1; i++)
         for (int j = 0; j < 3; j++) {
-            dataset[i].push_back((float) ((i * (j + 1)) % 6));
-            printf("% g", (float) ((i * (j + 1)) % 6));
+            dataset[i].push_back((float) ((i * (j + 1)) % n));
         }
+    dataset[n - 1].push_back((float) 5);
+    dataset[n - 1].push_back((float) 2);
+    dataset[n - 1].push_back((float) 6);
+    for (int i = 0; i < n; i++) {
+        printf("dataset[%d] = (", i);
+        for (int j = 0; j < 3; j++)
+            printf("% g", dataset[i][j]);
         printf(" )\n");
     }
     printf("\n");
@@ -95,21 +99,43 @@ int main(int argc, char** argv) {
     printf("swap a=%g, b=%g: ", dataset[0][0], dataset[1][0]);
     swap(&dataset[0][0], &dataset[1][0]);
     printf("a=%g, b=%g\n", dataset[0][0], dataset[1][0]);*/
-    
+
     //TEST FIND MEDIAN
-    printf("findMedian test: all values should be equal to 2\n");
+    printf("findMedian test:\n");
     for (int i = 0; i < 3; i++)
         printf("median[%d]=%g\n", i, findMedian(dataset, i));
     printf("\n");
 
     //TEST KDTREE
+    printf("dataset.size() = %d\n", dataset.size());
     printf("build kdtree test:\n");
     node root;
     int m = dataset[0].size();
-    printf("number of attributes = %d\n",m);
+    printf("number of attributes = %d\n", m);
     root = kdTree(dataset, m);
-    printf("resulting kdtree:\n%s",treeToString(root).c_str());
-    
-    
-   return (EXIT_SUCCESS);
+    printf("resulting kdtree:\n%s", treeToString(root).c_str());
+    printf("\n");
+
+    //TEST FIND k-neighbors
+    printf("k-neighbors search test:\n");
+    vector < float > observation;
+    observation.push_back(5);
+    observation.push_back(2);
+    observation.push_back(8);
+    int k = 2;
+    vector< vector<float> > kneighbors = kNeighborSearch(&root, observation, k);
+    printf("observation = (");
+    for (int i = 0; i < 3; i++)
+        printf("% g", observation[i]);
+    printf(" )\n");
+    printf("%d nearest neighbors:\n", k);
+    for (int i = 0; i < kneighbors.size(); i++) {
+        printf("(");
+        for (int j = 0; j < 3; j++)
+            printf("% g", kneighbors[i][j]);
+        printf(" )\n");
+    }
+
+
+    return (EXIT_SUCCESS);
 }
