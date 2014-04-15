@@ -2,21 +2,19 @@
 #include <cstdlib>
 #include "node.h"
 #include "kdtree.h"
-#include <time.h>
-#include <sys/time.h>
 #include <fstream>
 #include <list>
 #include <iostream>
+#include <time.h>
+#include <sys/time.h>
 
 using namespace std;
 
-void testkdtree();
 double read_timer();
+void testkdtree();
 float hash(const char *str);
 
 int main(int argc, char** argv) {
-
-    //testkdtree();
     
    if (argc != 4) {
         cout << "arguments: <input csv file location> <number of neighbors> <number of iterations>\n";
@@ -27,11 +25,10 @@ int main(int argc, char** argv) {
 
     int k, iternum;
     char* inputPath = argv[1];
-    //string inputPath = "C:/Users/CarlosJavier/Documents/UPRM/CISE/Fall 2013/CIIC 8995/relief/input/adult.data";
     istringstream(argv[2]) >> k;
     istringstream(argv[3]) >> iternum;
 
-    list< vector<float> > dataset;
+    vector<float> dataset;
     vector<string> recordClassList;
     vector<float> floatValues;
     vector<int> nominal;
@@ -42,7 +39,6 @@ int main(int argc, char** argv) {
     //
     cout << "loading input\n";
     ifstream infile(inputPath);
-    //ifstream infile(inputPath.c_str());
     string line;
     //
     //initialize some variables
@@ -79,19 +75,19 @@ int main(int argc, char** argv) {
         if (!skip) {
             m = floatValues.size() - 1;
             init = true;
-            dataset.push_back(floatValues);
+            dataset.insert(dataset.end(),floatValues.begin(),floatValues.end());
             recordClassList.push_back(result);
         }
     }
-
+    
     //
     //initialize max and min
     //
     vector<float> max;
     vector<float> min;
     for (int i = 0; i < m; i++) {
-        max.push_back(dataset.front()[i]);
-        min.push_back(dataset.front()[i]);
+        max.push_back(dataset[i]);
+        min.push_back(dataset[i]);
     }
 
     //iterate over file
@@ -120,7 +116,7 @@ int main(int argc, char** argv) {
         }
 
         if (!skip && floatValues.size() == m + 1) {
-            dataset.push_back(floatValues);
+            dataset.insert(dataset.end(),floatValues.begin(),floatValues.end());
             recordClassList.push_back(result);
             for (int i = 0; i < m; i++) {
                 float value = floatValues[i];
@@ -131,6 +127,10 @@ int main(int argc, char** argv) {
             }
         }
     }
+    
+    
+    cout << "dataset size = " << dataset.size()/(m+1) << " lines\n";
+    cout << m << " attributes detected (excluding class)\n";
 
     //
     //calculate range of values
@@ -146,20 +146,16 @@ int main(int argc, char** argv) {
     //
     //normalize dataset to [0,1]
     //
-    for (list< vector<float> >::iterator ci = dataset.begin(); ci != dataset.end(); ++ci) {
+    for (int i = 0; i < dataset.size() / (m + 1); i++)
         for (int j = 0; j < m; j++) {
-            (*ci)[j] = ((*ci)[j] - min[j]) / range[j];
+            dataset[i * (m + 1) + j] = (dataset[i * (m + 1) + j] - min[j]) / range[j];
         }
-    }
 
-    list< vector<float> >::iterator ci;
-    int i;
     
-    /*
-    for (i = 0, ci = dataset.begin(); i < 10; i++, ++ci) {
+   /* for (int i = 0; i < 10; i++) {
         cout << "recordClassList[" << i << "]=" << recordClassList[i] << "\n";
         for (int j = 0; j < m + 1; j++)
-            cout << (*ci)[j] << " ";
+            cout << dataset[i*(m+1)+j] << " ";
         cout << "\n";
     }*/
 
@@ -168,10 +164,10 @@ int main(int argc, char** argv) {
     //
     vector<float> classProbabilityList;
     vector<string> treeClassList;
-    vector< vector< vector<float> > > classDatasetList;
+    vector< vector<float> > classDatasetList;
     //determine to which class kd-tree each observation belongs to
     int treeClassIndex;
-    for (i = 0, ci = dataset.begin(); ci != dataset.end(); i++, ++ci) {
+    for (int i = 0; i < dataset.size()/(m+1) ;i++) {
         //determine if obs i belongs to a previously found class
         treeClassIndex = -1;
         for (int c = 0; c < treeClassList.size(); c++) {
@@ -183,25 +179,25 @@ int main(int argc, char** argv) {
 
         //new class
         if (treeClassIndex == -1) {
-            vector< vector<float> > newClassDataset;
-            newClassDataset.push_back(*ci);
+            vector<float> newClassDataset;
+            newClassDataset.insert(newClassDataset.end(),dataset.begin()+i*(m+1),dataset.begin()+(i+1)*(m+1));
             classDatasetList.push_back(newClassDataset);
             treeClassList.push_back(recordClassList[i]);
         }            //previously added class
         else
-            classDatasetList[treeClassIndex].push_back(*ci);
+            classDatasetList[treeClassIndex].insert(classDatasetList[treeClassIndex].end(),dataset.begin()+i*(m+1),dataset.begin()+(i+1)*(m+1));
     }
 
 
     /*cout << "treeClassList.size()=" << treeClassList.size() << "\n" << "classDatasetList.size()=" << classDatasetList.size() << "\n";
-    cout << "dataset.size()=" << dataset.size() << "\n";
+    cout << "dataset.size()=" << dataset.size()/(m+1) << "\n";
     int total = 0;
     for (int c = 0; c < treeClassList.size(); c++) {
-        cout << "treeClassList[" << c << "].size()=" << classDatasetList[c].size() << ", " << treeClassList[c] << "(" << hash(treeClassList[c].c_str()) << "): \n";
-        total += classDatasetList[c].size();
+        cout << "treeClassList[" << c << "].size()=" << classDatasetList[c].size()/(m+1) << ", " << treeClassList[c] << "(" << hash(treeClassList[c].c_str()) << "): \n";
+        total += classDatasetList[c].size()/(m+1);
         for (int i = 0; i < 5; i++) {
-            for (int j = 0; j < m; j++)
-                cout << classDatasetList[c][i][j] << " ";
+            for (int j = 0; j < m+1; j++)
+                cout << classDatasetList[c][i*(m+1)+j] << " ";
             cout << "\n";
         }
         cout << "\n";
@@ -215,26 +211,21 @@ int main(int argc, char** argv) {
     //
     vector<node> treeList;
     for (int i = 0; i < classDatasetList.size(); i++) {
-        vector< vector<float> > classDataset = classDatasetList[i];
-        //cout << "class " << treeClassList[i] << " kd-tree\n";
+        vector<float> classDataset = classDatasetList[i];
+        cout << "class " << treeClassList[i] << " kd-tree\n";
         node temptree = kdTree(classDataset, m);
         treeList.push_back(temptree);
 
         //calculate probability of class
         classProbabilityList.push_back((float) classDatasetList[i].size() / dataset.size());
-        //cout << "class probability = " << classProbabilityList[i] << "\n";
+        cout << "class probability = " << classProbabilityList[i] << "\n";
     }
-
-
+    
     //attr Weights
     vector<float> attrWeight(m);
     
-    /*for (int i = 0; i < m; i++)
-        cout << "weight[" << i << "]=" << attrWeight[i] << "\n";*/
-
-
-    if (iternum < 1 || iternum >= dataset.size())
-        iternum = dataset.size();    
+    if (iternum < 1 || iternum >= dataset.size()/(m+1))
+        iternum = dataset.size()/(m+1);    
     
     //Update attributes
     cout << "Updating attributes\n";
@@ -245,38 +236,37 @@ int main(int argc, char** argv) {
         if (i % (iternum / 25) == 0)
             cout << (int) ((float) i / iternum * 100) << "% " << flush;
         
-        //select observation        
-        /*ci = dataset.begin();  
+        //select observation          
+            
+        //int sampleIndex = rand()%dataset.size();
         
-        //int sampleIndex = i;
-        //advance(ci, sampleIndex);
-        //vector<float> observation = *ci;*/
-        vector<float> observation = dataset.front();
-    
-        //dataset.erase(ci);
-        dataset.erase(dataset.begin());
+        vector<float> observation;
+        for(int j = 0; j < m+1; j++)
+            observation.push_back(dataset[i*(m+1)+j]);
+        
 
         if (observation.size() == m + 1) {
 
             int currClassTreeIndex = -1;
-            for (int j = 0; j < treeClassList.size(); j++)
-                if (hash(treeClassList[j].c_str()) == observation[m]) {
+            for (int j = 0; j < treeClassList.size(); j++){
+                //cout << "treeClassList " << j << " hash: " << hash(treeClassList[j].c_str()) << endl;
+                if ((nominal[m] && hash(treeClassList[j].c_str()) == observation[m]) || (!nominal[m] && atof(treeClassList[j].c_str())==observation[m])) {
                     currClassTreeIndex = j;
                     break;
                 }
-
+            }
+            
             //find k near hits
-            timer -= read_timer();
-            vector< vector<float> > nearHits = kNeighborSearch(&treeList[currClassTreeIndex], observation, k);
-            timer += read_timer();
-            vector<float> currNearHit;
-            for (int j = 0; j < nearHits.size(); j++) {
-                currNearHit = nearHits[j];
+                    //timer -= read_timer();
+            vector<float> nearHits = kNeighborSearch(&(treeList[currClassTreeIndex]), observation, k, nominal,m);
+                    //timer += read_timer();            
+            
+            for (int j = 0; j < nearHits.size()/(m+1); j++) {
                 for (int z = 0; z < m; z++) {
-                    if (nominal[z] && observation[z] != currNearHit[z]) {
+                    if (nominal[z] && observation[z] != nearHits[j*(m+1)+z]) {
                         attrWeight[z] -= 1;
                     } else {
-                        float diff = abs(observation[z] - currNearHit[z]);
+                        float diff = abs(observation[z] - nearHits[j*(m+1)+z]);
                         attrWeight[z] -= diff;
                     }
                 }
@@ -285,15 +275,13 @@ int main(int argc, char** argv) {
             //find k near misses from each class
             for (int c = 0; c < treeList.size(); c++)
                 if (c != currClassTreeIndex) {
-                    vector< vector<float> > nearMisses = kNeighborSearch(&treeList[c], observation, k);
-                    vector<float> currNearMiss;
-                    for (int j = 0; j < nearMisses.size(); j++) {
-                        currNearMiss = nearMisses[j];
+                    vector<float> nearMisses = kNeighborSearch(&treeList[c], observation, k, nominal,m);
+                    for (int j = 0; j < nearMisses.size()/(m+1); j++) {
                         for (int z = 0; z < m; z++) {
-                            if (nominal[z] && observation[z] != currNearMiss[z]) {
+                            if (nominal[z] && observation[z] != nearMisses[j*(m+1)+z]) {
                                 attrWeight[z] += (classProbabilityList[c] / (1 - classProbabilityList[currClassTreeIndex]));
                             } else {
-                                float diff = abs(observation[z] - currNearMiss[z]);
+                                float diff = abs(observation[z] - nearMisses[j*(m+1)+z]);
                                 attrWeight[z] += (classProbabilityList[c] / (1 - classProbabilityList[currClassTreeIndex])) * diff;
                             }
                         }
@@ -302,7 +290,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    cout << "\n" << timer << "s\n";
+    //cout << "\n" << timer << "s\n";
 
     vector< vector<float> > result(m);
 
@@ -332,8 +320,15 @@ int main(int argc, char** argv) {
 
     double elapsedTime = read_timer() - startTime;
     cout << "\nElapsed time: " << ((int) (elapsedTime / 3600)) % 60 << "hr " << ((int) (elapsedTime / 60)) % 60 << "min " << elapsedTime - ((int) (elapsedTime/60))*60 << "s\n";
-
+        
     return (EXIT_SUCCESS);
+}
+
+float hash(const char *str) {
+    int h = 0;
+    while (*str)
+        h = h << 1 ^ *str++;
+    return h;
 }
 
 double read_timer() {
@@ -346,13 +341,6 @@ double read_timer() {
     }
     gettimeofday(&end, NULL);
     return (end.tv_sec - start.tv_sec) + 1.0e-6 * (end.tv_usec - start.tv_usec);
-}
-
-float hash(const char *str) {
-    int h = 0;
-    while (*str)
-        h = h << 1 ^ *str++;
-    return h;
 }
 
 void testkdtree() {
@@ -424,20 +412,22 @@ void testkdtree() {
 
 
     //DEFINE TEST DATASET
-    int n = 8;
-    vector< vector<float> > dataset(n);
+    int n = 8, m = 3;
+    vector<float> dataset;
     printf("dataset.size() = %d\n", dataset.size());
+    cout << "number of records = " << dataset.size()/(m+1) << endl;
     for (int i = 0; i < n - 1; i++)
-        for (int j = 0; j < 3; j++) {
-            dataset[i].push_back((float) ((i * (j + 1)) % n));
+        for (int j = 0; j < m+1; j++) {
+            dataset.push_back((float) ((i * (j + 1)) % n));
         }
-    dataset[n - 1].push_back((float) 5);
-    dataset[n - 1].push_back((float) 2);
-    dataset[n - 1].push_back((float) 6);
+    dataset.push_back((float) 5);
+    dataset.push_back((float) 2);
+    dataset.push_back((float) 6);
+    dataset.push_back((float) 4);
     for (int i = 0; i < n; i++) {
         printf("dataset[%d] = (", i);
-        for (int j = 0; j < 3; j++)
-            printf("% g", dataset[i][j]);
+        for (int j = 0; j < m+1; j++)
+            printf("% g", dataset[i*(m+1)+j]);
         printf(" )\n");
     }
     printf("\n");
@@ -448,15 +438,14 @@ void testkdtree() {
 
     //TEST FIND MEDIAN
     printf("findMedian test:\n");
-    for (int i = 0; i < 3; i++)
-        printf("median[%d]=%g\n", i, findMedian(dataset, i));
+    for (int i = 0; i < m; i++)
+        printf("median[%d]=%g\n", i, findMedian(dataset, i, m));
     printf("\n");
 
     //TEST KDTREE
     printf("dataset.size() = %d\n", dataset.size());
     printf("build kdtree test:\n");
     node root;
-    int m = dataset[0].size();
     printf("number of attributes = %d\n", m);
     root = kdTree(dataset, m);
     printf("resulting kdtree:\n%s", treeToString(root).c_str());
@@ -467,18 +456,21 @@ void testkdtree() {
     vector < float > observation;
     observation.push_back(5);
     observation.push_back(2);
-    observation.push_back(8);
+    observation.push_back(6.5);
+    observation.push_back(0);
+    vector <int> nominal;
+    nominal.push_back(0); nominal.push_back(0);
     int k = 2;
-    vector< vector<float> > kneighbors = kNeighborSearch(&root, observation, k);
+    vector<float> kneighbors = kNeighborSearch(&root, observation, k, nominal, m);
     printf("observation = (");
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < m+1; i++)
         printf("% g", observation[i]);
     printf(" )\n");
     printf("%d nearest neighbors:\n", k);
-    for (int i = 0; i < kneighbors.size(); i++) {
+    for (int i = 0; i < kneighbors.size()/(m+1); i++) {
         printf("(");
-        for (int j = 0; j < 3; j++)
-            printf("% g", kneighbors.at(i)[j]);
+        for (int j = 0; j < m+1; j++)
+            printf("% g", kneighbors[i*(m+1)+j]);
         printf(" )\n");
     }
 }
