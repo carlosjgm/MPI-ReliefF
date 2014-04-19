@@ -1,66 +1,103 @@
 #include "kdtree.h"
+#include <iostream>
 
-node kdTree(vector<float> dataset, int m) {
-    node root;
-    aux_kdtree(&root, dataset, 0, m);
-    return root;
+kdTree::kdTree(vector<float> dataset, int m, vector<bool> nominal) {
+
+    this->m = m;
+    this->nominal = nominal;
+    this->nodeList.push_back(node(0));
+    aux_kdtree(0, dataset, 0);
+
 }
 
-void aux_kdtree(node * root, vector<float> dataset, int attrIndex, int m) {
+void kdTree::aux_kdtree(int subroot, vector<float> dataset, int attrIndex) {
 
-    //base case: create leaf node with values
-    if (dataset.size() == m+1)
-        root->setValues(dataset);
-
+    //only one element in dataset
+    if (dataset.size() == this->m + 1)
+        this->nodeList[subroot].setValues(dataset);
+    
+    //separate dataset by median
     else {
-        float median = findMedian(dataset, attrIndex, m);
+        float median = findMedian(dataset, attrIndex);
         vector<float> leftData;
         vector<float> rightData;
-        for (int i = 0; i < dataset.size()/(m+1); i++) {
-            if (dataset[i * (m + 1) + attrIndex] <= median)
-                for (int j = 0; j < m + 1; j++)
-                    leftData.push_back(dataset[i * (m + 1) + j]);
+        for (int i = 0; i < dataset.size() / (this->m + 1); i++) {
+            if (dataset[i * (this->m + 1) + attrIndex] <= median)
+                for (int j = 0; j < this->m + 1; j++)
+                    leftData.push_back(dataset[i * (this->m + 1) + j]);
             else
-                for (int j = 0; j < m + 1; j++)
-                    rightData.push_back(dataset[i * (m + 1) + j]);
+                for (int j = 0; j < this->m + 1; j++)
+                    rightData.push_back(dataset[i * (this->m + 1) + j]);
         }
 
+        //find an attrIndex that separates data if the curr attrIndex does not 
+        //distinguish between elements in dataset
         int searchCount = 0;
-        while (rightData.size() == 0 && searchCount < m) {
+        while (rightData.size() == 0 && searchCount < this->m) {
             leftData.clear();
             rightData.clear();
             attrIndex++;
-            if (attrIndex == m) attrIndex = 0;
-            median = findMedian(dataset, attrIndex, m);
-            for (int i = 0; i < dataset.size() / (m + 1); i++) {
-                if (dataset[i * (m + 1) + attrIndex] <= median)
-                    for (int j = 0; j < m + 1; j++)
-                        leftData.push_back(dataset[i * (m + 1) + j]);
+            if (attrIndex == this->m) attrIndex = 0;
+            median = findMedian(dataset, attrIndex);
+            for (int i = 0; i < dataset.size() / (this->m + 1); i++) {
+                if (dataset[i * (this->m + 1) + attrIndex] <= median)
+                    for (int j = 0; j < this->m + 1; j++)
+                        leftData.push_back(dataset[i * (this->m + 1) + j]);
                 else
-                    for (int j = 0; j < m + 1; j++)
-                        rightData.push_back(dataset[i * (m + 1) + j]);
+                    for (int j = 0; j < this->m + 1; j++)
+                        rightData.push_back(dataset[i * (this->m + 1) + j]);
             }
             searchCount++;
         }
 
-        if (rightData.size() == 0)
-            root->setValues(dataset);
-
+        //dataset contains repeated elements
+        if (rightData.size() == 0){
+            vector<float> temp;
+            for(int i=0; i<this->m+1;i++)
+                temp.push_back(dataset[i]);
+            this->nodeList[subroot].setValues(temp);
+        }
+        
         else {
-            root->setMedian(median);
-            root->setAttrIndex(attrIndex);
-            root->addChildren();
+            
+            this->nodeList[subroot].setAttrIndex(attrIndex);
+            this->nodeList[subroot].setMedian(median);
 
+            //add left child
+            int leftIndex = this->nodeList.size();
+            this->nodeList[subroot].addLeft(leftIndex);            
+            this->nodeList.push_back(node(leftIndex, subroot));
+            
+            //add right child
+            int rightIndex = this->nodeList.size();
+            this->nodeList[subroot].addRight(rightIndex);            
+            this->nodeList.push_back(node(rightIndex, subroot));
+            
             attrIndex++;
             if (attrIndex == m) attrIndex = 0;
 
-            aux_kdtree(root->getLeft(), leftData, attrIndex, m);
-            aux_kdtree(root->getRight(), rightData, attrIndex, m);
+            //expand left
+            aux_kdtree(leftIndex, leftData, attrIndex);
+            
+            //expand right
+            aux_kdtree(rightIndex, rightData, attrIndex);
         }
     }
+
 }
 
-float findMedian(vector<float> dataset, int attrIndex, int m) {
+kdTree::kdTree(vector<node> nodeList, int m, vector<bool> nominal) {
+
+    this->nodeList = nodeList;
+    this->m = m;
+    this->nominal = nominal;
+
+}
+
+float kdTree::findMedian(vector<float> dataset, int attrIndex) {
+    
+    int m = this->m;
+    
     int n = dataset.size()/(m+1);
     int low = 0, high = n - 1, median = (low + high) / 2, middle, ll, hh;
 
@@ -107,174 +144,121 @@ float findMedian(vector<float> dataset, int attrIndex, int m) {
     }
 }
 
-void swap(float * a, float * b) {
+void kdTree::swap(float * a, float * b) {
     float temp = *a;
     *a = *b;
     *b = temp;
 }
 
-void unvisitNodes(node * root) {
-    queue<node *> nodeQueue;
-    node * currNode;
-    nodeQueue.push(root);
-    while (!nodeQueue.empty()) {
-        currNode = nodeQueue.front();
-        nodeQueue.pop();
-        currNode->unvisit();
-        if (currNode->getLeft() != NULL)
-            nodeQueue.push(currNode->getLeft());
-        if (currNode->getRight() != NULL)
-            nodeQueue.push(currNode->getRight());
-    }
-}
-
-vector<float> kNeighborSearch(node * root, vector<float> observation, int k, vector<int> nominal, int m) {
-    vector<float> knnlist;
-    knnlist.reserve(k*(m+1)*sizeof(float));
-    vector<float> distances;
-    float maxDistance = -1;
-    int maxIndex = -1;
+vector< vector<float> > kdTree::kNeighborSearch(vector<float> observation, int k) {
+    
+    this->knnlist = knnList(k, observation, this->nominal);
     
     //find nearest neighbor
     int attrIndex;
     float compareValue;
-    node * currNode = root;
-    while (!currNode->isLeaf()) {
-        attrIndex = currNode->getAttrIndex();
-        compareValue = currNode->getMedian();
+    node currNode = this->nodeList[0];
+    while (!currNode.isLeaf()) {
+        attrIndex = currNode.getAttrIndex();
+        compareValue = currNode.getMedian();
         if (observation[attrIndex] <= compareValue)
-            currNode = currNode->getLeft();
+            currNode = this->nodeList[currNode.getLeft()];
         else
-            currNode = currNode->getRight();
+            currNode = this->nodeList[currNode.getRight()];
     }
-    float currDistanceToObs = 0;
-    vector<float> currValues = currNode->getValues();
-    for (int i = 0; i < currValues.size(); i++) {
-        if(nominal[i] && observation[i]!=currValues[i])
-                currDistanceToObs++;
-        else
-            currDistanceToObs += abs(observation[i] - currValues[i]);
-    }
-    if (currDistanceToObs != 0) {
-        knnlist.insert(knnlist.end(),currValues.begin(),currValues.end());
-        distances.push_back(currDistanceToObs);
-        maxDistance = currDistanceToObs;
-        maxIndex = 0;
-    }
-
-    currNode->visit();
+    this->knnlist.add(currNode.getValues());
+    this->nodeList[currNode.getIndex()].visit();
     
-    aux_kNeighborSearch(currNode->getParent(), observation, k, nominal, &knnlist, &distances, &maxDistance, &maxIndex,m);
+    aux_kNeighborSearch(currNode.getParent(), observation);
     
-    unvisitNodes(root);
+    unvisitNodes();
     
-    return knnlist;
+    return this->knnlist.getNeighbors();
 }
 
-void aux_kNeighborSearch(node * root, vector<float> observation, int k, vector<int> nominal, vector<float> * knnlist, vector<float> * distances, float * maxDistance, int * maxIndex, int m) {
-    
-    node * currNode = root;   
-    
-    //reached a possible nearest neighbor
-    if (currNode->isLeaf()) {
-        //determine distance of current leaf
-        float currDistanceToObs = 0;
-        vector<float> currValues = currNode->getValues();
-        for (int i = 0; i < currValues.size(); i++) {
-            if(nominal[i] && observation[i]!=currValues[i])
-                currDistanceToObs++;
-            else
-                currDistanceToObs += abs(observation[i] - currValues[i]);
-        }
-        //add to knnlist if the list is not full or if it is a new nearest neighbor
+void kdTree::aux_kNeighborSearch(int root, vector<float> observation) {
         
-        if (knnlist->size()/(m+1) != k) {
-            knnlist->insert(knnlist->end(),currValues.begin(),currValues.end());
-            distances->push_back(currDistanceToObs);
-            //update maxDistance
-            *maxDistance = -1;
-            *maxIndex = -1;
-            for (int i = 0; i < distances->size(); i++)
-                if (distances->at(i) > *maxDistance) {
-                    *maxDistance = distances->at(i);
-                    *maxIndex = i;
-                }
-        } else if (currDistanceToObs < *maxDistance) {
-            
-            for(int i=0; i<m+1; i++)
-                knnlist->at((*maxIndex) * (m+1)+i) = currValues[i];
-            distances->at(*maxIndex) = currDistanceToObs;
-            //update maxDistance
-            *maxDistance = -1;
-            *maxIndex = -1;
-            for (int i = 0; i < distances->size(); i++)
-                if (distances->at(i) > *maxDistance) {
-                    *maxDistance = distances->at(i);
-                    *maxIndex = i;
-                }
-        }        
-        
-        currNode->visit();
-        currNode = currNode->getParent();
-        
-    }
+    node currNode = this->nodeList[root];
 
-    if (!currNode->isVisited()) {
+    //reached a possible nearest neighbor
+    if (currNode.isLeaf()) {
+        this->knnlist.add(currNode.getValues());
         
         //mark node as visited
-        currNode->visit();
+        this->nodeList[root].visit();
+        
+        root = currNode.getParent();
+        currNode = this->nodeList[root];
+
+    }
+
+    if (!currNode.isVisited()) {        
         
         //check if subtree contains possible nearest neighbors
         bool checkLeft = true;
         bool checkRight = true;
-        if (knnlist->size()/(m+1) == k) {
+        if (this->knnlist.isFull()) {
             float subTreeMinDistToObs;
-            if(nominal[currNode->getAttrIndex()])
+            if(this->nominal[currNode.getAttrIndex()])
                 subTreeMinDistToObs = 1;
             else
-                subTreeMinDistToObs = abs(observation[currNode->getAttrIndex()] - currNode->getMedian());
+                subTreeMinDistToObs = abs(observation[currNode.getAttrIndex()] - currNode.getMedian());
             
-            if (subTreeMinDistToObs >= *maxDistance) {
+            if (subTreeMinDistToObs >= this->knnlist.getMaxDistance()) {
                 checkRight = false;
                 checkLeft = false;
             }
         }
-
+        
+        //mark node as visited
+        this->nodeList[root].visit();
+        
         //check left
-        node * nextSubtree = currNode->getLeft();
-        if (checkLeft && nextSubtree != NULL && !nextSubtree->isVisited())
-            aux_kNeighborSearch(nextSubtree, observation, k, nominal, knnlist, distances, maxDistance, maxIndex,m);
+        int tempIndex = currNode.getLeft();
+        if (checkLeft && tempIndex != -1 && !this->nodeList[tempIndex].isVisited())
+            aux_kNeighborSearch(tempIndex, observation);
 
         //check right
-        nextSubtree = currNode->getRight();
-        if (checkRight && nextSubtree != NULL && !nextSubtree->isVisited())
-            aux_kNeighborSearch(nextSubtree, observation, k, nominal, knnlist, distances, maxDistance, maxIndex,m);
+        tempIndex = currNode.getRight();
+        if (checkRight && tempIndex != -1 && !this->nodeList[tempIndex].isVisited())
+            aux_kNeighborSearch(tempIndex, observation);
 
         //move up the tree
-        if (currNode->getParent() != NULL && !currNode->getParent()->isVisited())
-            aux_kNeighborSearch(currNode->getParent(), observation, k, nominal, knnlist, distances, maxDistance, maxIndex,m);
+        if (currNode.getParent() != -1 && !this->nodeList[currNode.getParent()].isVisited())
+            aux_kNeighborSearch(currNode.getParent(), observation);
     }
     
 }
 
-string treeToString(node root) {
+void kdTree::unvisitNodes() {
+    for(int i=0; i < this->nodeList.size(); i++)
+        this->nodeList[i].unvisit();
+}
+
+vector<node> kdTree::getNodeList() {
+    return this->nodeList;
+}
+
+string kdTree::toString() {
+    
     string result;
     node currNode;
     queue<node> nodeQueue;
-    nodeQueue.push(root);
+    nodeQueue.push(this->nodeList[0]);
     while (!nodeQueue.empty()) {
         currNode = nodeQueue.front();
         nodeQueue.pop();
         result += currNode.toString();
-        if (currNode.getLeft() != NULL)
-            nodeQueue.push(*currNode.getLeft());
+        if (currNode.getLeft() != -1)
+            nodeQueue.push(this->nodeList[currNode.getLeft()]);
         else
             result += " nL";
-        if (currNode.getRight() != NULL)
-            nodeQueue.push(*currNode.getRight());
+        if (currNode.getRight() != -1)
+            nodeQueue.push(this->nodeList[currNode.getRight()]);
         else
             result += " nR";
         result += "\n";
     }
     return result;
+    
 }

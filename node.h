@@ -7,23 +7,26 @@
 #include <string>
 #include <sstream>
 #include <stdio.h>
+#include <cstdlib>
 
 using namespace std;
 
 class node {
 public:
 
-    node(vector < float > values);
-    node(int attrIndex, float median);
-    node(node * parent);
-    node();
-    float distanceTo(node * target);    
-    node * getParent();
-    void addChildren();
+    node(int nodeIndex, vector < float > values);
+    node(int nodeIndex, int attrIndex, float median);
+    node(int nodeIndex, int parent);
+    node(int nodeIndex);
+    node(); 
+    int getParent();
+    void addLeft(int childIndex);
+    void addRight(int childIndex);
     vector < float > getValues();     
     void setValues(vector < float > values);    
-    node * getLeft();
-    node * getRight();    
+    int getIndex();
+    int getLeft();
+    int getRight();    
     bool isLeaf();
     float getMedian();
     int getAttrIndex();
@@ -36,9 +39,10 @@ public:
 
 private:
 
-    node * parent;
-    node * left;
-    node * right;
+    int index;
+    int parent;
+    int left;
+    int right;
     vector < float > values;
 
     float median;

@@ -1,22 +1,22 @@
 #include <stdio.h>
 #include <cstdlib>
-#include "node.h"
 #include "kdtree.h"
 #include <fstream>
 #include <list>
 #include <iostream>
 #include <time.h>
 #include <sys/time.h>
+#include <assert.h>
 
 using namespace std;
 
+void test();
 double read_timer();
-void testkdtree();
 float hash(const char *str);
 
 int main(int argc, char** argv) {
     
-   if (argc != 4) {
+    if (argc != 4) {
         cout << "arguments: <input csv file location> <number of neighbors> <number of iterations>\n";
         return(EXIT_FAILURE);
     }
@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
     vector<float> dataset;
     vector<string> recordClassList;
     vector<float> floatValues;
-    vector<int> nominal;
+    vector<bool> nominal;
     int m;
 
     //
@@ -63,12 +63,12 @@ int main(int argc, char** argv) {
 
             //result is nominal
             if (value == 0 && result[0] != '0') {
-                nominal.push_back(1);
+                nominal.push_back(true);
                 value = hash(result.c_str());
                 floatValues.push_back(value);
             }                //result is numeric
             else {
-                nominal.push_back(0);
+                nominal.push_back(false);
                 floatValues.push_back(value);
             }
         }
@@ -209,12 +209,11 @@ int main(int argc, char** argv) {
     //
     //build kd-trees for each class
     //
-    vector<node> treeList;
+    vector<kdTree> treeList;
     for (int i = 0; i < classDatasetList.size(); i++) {
         vector<float> classDataset = classDatasetList[i];
         cout << "class " << treeClassList[i] << " kd-tree\n";
-        node temptree = kdTree(classDataset, m);
-        treeList.push_back(temptree);
+        treeList.push_back(kdTree(classDataset, m, nominal));
 
         //calculate probability of class
         classProbabilityList.push_back((float) classDatasetList[i].size() / dataset.size());
@@ -235,59 +234,59 @@ int main(int argc, char** argv) {
 
         if (i % (iternum / 25) == 0)
             cout << (int) ((float) i / iternum * 100) << "% " << flush;
-        
+
         //select observation          
-            
+        int sampleIndex = i;
         //int sampleIndex = rand()%dataset.size();
-        
+
         vector<float> observation;
-        for(int j = 0; j < m+1; j++)
-            observation.push_back(dataset[i*(m+1)+j]);
-        
+        for (int j = 0; j < m; j++)
+            observation.push_back(dataset[sampleIndex * (m + 1) + j]);
 
-        if (observation.size() == m + 1) {
-
-            int currClassTreeIndex = -1;
-            for (int j = 0; j < treeClassList.size(); j++){
-                //cout << "treeClassList " << j << " hash: " << hash(treeClassList[j].c_str()) << endl;
-                if ((nominal[m] && hash(treeClassList[j].c_str()) == observation[m]) || (!nominal[m] && atof(treeClassList[j].c_str())==observation[m])) {
-                    currClassTreeIndex = j;
-                    break;
-                }
+        int currClassTreeIndex = -1;
+        for (int j = 0; j < treeClassList.size(); j++) {
+            //cout << "treeClassList " << j << " hash: " << hash(treeClassList[j].c_str()) << endl;
+            if (!treeClassList[j].compare(recordClassList[sampleIndex])) {
+                currClassTreeIndex = j;
+                break;
             }
-            
-            //find k near hits
-                    //timer -= read_timer();
-            vector<float> nearHits = kNeighborSearch(&(treeList[currClassTreeIndex]), observation, k, nominal,m);
-                    //timer += read_timer();            
-            
-            for (int j = 0; j < nearHits.size()/(m+1); j++) {
-                for (int z = 0; z < m; z++) {
-                    if (nominal[z] && observation[z] != nearHits[j*(m+1)+z]) {
+        }
+
+        //find k near hits
+        //timer -= read_timer();
+        vector< vector<float> > nearHits = treeList[currClassTreeIndex].kNeighborSearch(observation, k);
+        //timer += read_timer();            
+
+        for (int j = 0; j < nearHits.size(); j++) {
+            vector<float> currNearHit = nearHits[j];
+            for (int z = 0; z < m; z++) {
+                if (nominal[z]) {
+                    if(observation[z] != currNearHit[z])
                         attrWeight[z] -= 1;
-                    } else {
-                        float diff = abs(observation[z] - nearHits[j*(m+1)+z]);
-                        attrWeight[z] -= diff;
-                    }
+                } else {
+                    float diff = abs(observation[z] - currNearHit[z]);
+                    attrWeight[z] -= diff;
                 }
             }
+        }
 
-            //find k near misses from each class
-            for (int c = 0; c < treeList.size(); c++)
-                if (c != currClassTreeIndex) {
-                    vector<float> nearMisses = kNeighborSearch(&treeList[c], observation, k, nominal,m);
-                    for (int j = 0; j < nearMisses.size()/(m+1); j++) {
-                        for (int z = 0; z < m; z++) {
-                            if (nominal[z] && observation[z] != nearMisses[j*(m+1)+z]) {
+        //find k near misses from each class
+        for (int c = 0; c < treeList.size(); c++)
+            if (c != currClassTreeIndex) {
+                vector< vector<float> > nearMisses = treeList[c].kNeighborSearch(observation, k);
+                for (int j = 0; j < nearMisses.size(); j++) {
+                    vector<float> currNearMiss = nearMisses[j];
+                    for (int z = 0; z < m; z++) {
+                        if (nominal[z]) {
+                            if(observation[z] != currNearMiss[z])
                                 attrWeight[z] += (classProbabilityList[c] / (1 - classProbabilityList[currClassTreeIndex]));
-                            } else {
-                                float diff = abs(observation[z] - nearMisses[j*(m+1)+z]);
-                                attrWeight[z] += (classProbabilityList[c] / (1 - classProbabilityList[currClassTreeIndex])) * diff;
-                            }
+                        } else {
+                            float diff = abs(observation[z] - currNearMiss[z]);
+                            attrWeight[z] += (classProbabilityList[c] / (1 - classProbabilityList[currClassTreeIndex])) * diff;
                         }
                     }
                 }
-        }
+            }
     }
 
     //cout << "\n" << timer << "s\n";
@@ -320,8 +319,10 @@ int main(int argc, char** argv) {
 
     double elapsedTime = read_timer() - startTime;
     cout << "\nElapsed time: " << ((int) (elapsedTime / 3600)) % 60 << "hr " << ((int) (elapsedTime / 60)) % 60 << "min " << elapsedTime - ((int) (elapsedTime/60))*60 << "s\n";
-        
+     
+    
     return (EXIT_SUCCESS);
+
 }
 
 float hash(const char *str) {
@@ -343,81 +344,16 @@ double read_timer() {
     return (end.tv_sec - start.tv_sec) + 1.0e-6 * (end.tv_usec - start.tv_usec);
 }
 
-void testkdtree() {
-    node test(2, 3.5);
+void test() {
 
-    //TEST TOSTRING
-    printf("\nTEST TOTREE\n");
-    string output = test.toString();
-    printf("%s\n", output.c_str());
-
-    //TEST VISITED    
-    printf("\nTEST VISITED\n");
-    test.visit();
-    test.unvisit();
-    if (test.isVisited())
-        printf("node is visited\n");
-    else
-        printf("node is not visited\n");
-
-    //TEST SETMEDIAN/SETATTRINDEX/GETMEDIAN/GETATTRINDEX
-    printf("\nTEST SETMEDIAN/SETATTRINDEX/GETMEDIAN/GETATTRINDEX\n");
-    test.setMedian(74.3);
-    test.setAttrIndex(9);
-    printf("(%d, %g) ", test.getAttrIndex(), test.getMedian());
-    output = test.toString();
-    printf("%s\n", output.c_str());
-
-    //TEST GETLEFT/GETRIGHT/ISLEAF/GETPARENT/NEWNODE/DISTANCETO
-    printf("\nTEST GETLEFT/GETRIGHT/ISLEAF/GETPARENT/NEWNODW/DISTANCETO\n");
-    printf("Left = %d\n", test.getLeft());
-    printf("Right = %d\n", test.getRight());
-    printf("Leaf = %d\n", test.isLeaf());
-    printf("Parent = %d\n", test.getParent());
-    printf("ADDING CHILDREN:\n");
-    test.addChildren();
-    vector < float > leftvalues;
-    leftvalues.push_back(3.2);
-    leftvalues.push_back(5.9);
-    leftvalues.push_back(8.4);
-    vector < float > rightvalues;
-    rightvalues.push_back(2.2);
-    rightvalues.push_back(1.9);
-    rightvalues.push_back(3.4);
-    test.getLeft()->setValues(leftvalues);
-    test.getRight()->setValues(rightvalues);
-    printf("Left = %s, parent = %s\n", test.getLeft()->toString().c_str(), test.getLeft()->getParent()->toString().c_str());
-    printf("Right = %s, parent = %s\n", test.getRight()->toString().c_str(), test.getRight()->getParent()->toString().c_str());
-    printf("Leaf = %d\n", test.isLeaf());
-    printf("Left values = ");
-    for (int i = 0; i < test.getLeft()->getValues().size(); i++)
-        printf("%f ", test.getLeft()->getValues()[i]);
-    printf("\n");
-    node test2(leftvalues);
-    printf("new node: %s\n", test2.toString().c_str());
-    printf("%s distance to %s = %f\n", test.getLeft()->toString().c_str(), test.getRight()->toString().c_str(), test.getLeft()->distanceTo(test.getRight()));
-
-    //TEST UNVISITNODES
-    printf("unvisit nodes test:\n");
-    test.visit();
-    test.getLeft()->visit();
-    test.getRight()->visit();
-    printf("before unvisit nodes: %d %d %d\n", test.isVisited(), test.getLeft()->isVisited(), test.getRight()->isVisited());
-    unvisitNodes(&test);
-    printf("after unvisit nodes: %d %d %d\n", test.isVisited(), test.getLeft()->isVisited(), test.getRight()->isVisited());
-    printf("\n");
-
-    //TEST TREETOSTRING
-    printf("test kdtree to string test:\n%s", treeToString(test).c_str());
-
-
+    //
     //DEFINE TEST DATASET
-    int n = 8, m = 3;
+    //
+    printf("\n");
+    int n = 9, m = 3;
     vector<float> dataset;
-    printf("dataset.size() = %d\n", dataset.size());
-    cout << "number of records = " << dataset.size()/(m+1) << endl;
     for (int i = 0; i < n - 1; i++)
-        for (int j = 0; j < m+1; j++) {
+        for (int j = 0; j < m + 1; j++) {
             dataset.push_back((float) ((i * (j + 1)) % n));
         }
     dataset.push_back((float) 5);
@@ -426,51 +362,110 @@ void testkdtree() {
     dataset.push_back((float) 4);
     for (int i = 0; i < n; i++) {
         printf("dataset[%d] = (", i);
-        for (int j = 0; j < m+1; j++)
-            printf("% g", dataset[i*(m+1)+j]);
+        for (int j = 0; j < m + 1; j++)
+            printf("% g", dataset[i * (m + 1) + j]);
         printf(" )\n");
     }
-    printf("\n");
-    /*//TEST SWAP
-    printf("swap a=%g, b=%g: ", dataset[0][0], dataset[1][0]);
-    swap(&dataset[0][0], &dataset[1][0]);
-    printf("a=%g, b=%g\n", dataset[0][0], dataset[1][0]);*/
-
-    //TEST FIND MEDIAN
-    printf("findMedian test:\n");
-    for (int i = 0; i < m; i++)
-        printf("median[%d]=%g\n", i, findMedian(dataset, i, m));
-    printf("\n");
-
-    //TEST KDTREE
     printf("dataset.size() = %d\n", dataset.size());
-    printf("build kdtree test:\n");
-    node root;
-    printf("number of attributes = %d\n", m);
-    root = kdTree(dataset, m);
-    printf("resulting kdtree:\n%s", treeToString(root).c_str());
+    cout << "number of records = " << dataset.size() / (m + 1) << endl;
     printf("\n");
 
-    //TEST FIND k-neighbors
-    printf("k-neighbors search test:\n");
+    //
+    //TEST KNNLIST
+    //
     vector < float > observation;
     observation.push_back(5);
     observation.push_back(2);
     observation.push_back(6.5);
-    observation.push_back(0);
-    vector <int> nominal;
-    nominal.push_back(0); nominal.push_back(0);
-    int k = 2;
-    vector<float> kneighbors = kNeighborSearch(&root, observation, k, nominal, m);
-    printf("observation = (");
-    for (int i = 0; i < m+1; i++)
-        printf("% g", observation[i]);
-    printf(" )\n");
-    printf("%d nearest neighbors:\n", k);
-    for (int i = 0; i < kneighbors.size()/(m+1); i++) {
-        printf("(");
-        for (int j = 0; j < m+1; j++)
-            printf("% g", kneighbors[i*(m+1)+j]);
-        printf(" )\n");
+    vector <bool> nominal;
+    nominal.push_back(false);
+    nominal.push_back(false);
+    nominal.push_back(true);
+    knnList neighborList(2, observation, nominal);
+    for (int i = 0; i < dataset.size() / (m + 1); i++) {
+        vector<float> candidate;
+        for (int j = 0; j < m; j++)
+            candidate.push_back(dataset[i * (m + 1) + j]);
+        neighborList.add(candidate);
+        if (i < 1)
+            assert(!neighborList.isFull());
+        else
+            assert(neighborList.isFull());
     }
+    assert(neighborList.getMaxDistance() == 2);
+    vector< vector<float> > neighbors = neighborList.getNeighbors();
+    for (int j = 0; j < m; j++)
+        assert(neighbors[0][j] == dataset[8 * (m + 1) + j]);
+    for (int j = 0; j < m; j++)
+        assert(neighbors[1][j] == dataset[5 * (m + 1) + j]);
+
+
+    //
+    //TEST NODE
+    //
+    node valueNode(1, observation);
+    assert(valueNode.getIndex() == 1);
+    assert(valueNode.getLeft() == -1);
+    assert(valueNode.getRight() == -1);
+    assert(valueNode.getParent() == -1);
+    assert(valueNode.isLeaf());
+    for (int i = 0; i < m; i++)
+        assert(valueNode.getValues()[i] == observation[i]);
+    node attrNode(2, 1, 3.5);
+    assert(attrNode.getIndex() == 2);
+    assert(attrNode.getLeft() == -1);
+    assert(attrNode.getRight() == -1);
+    assert(attrNode.getParent() == -1);
+    assert(attrNode.getAttrIndex() == 1);
+    assert(attrNode.getMedian() == 3.5);
+    assert(attrNode.isLeaf());
+    attrNode.addLeft(3);
+    assert(!attrNode.isLeaf());
+    attrNode.setMedian(5.5);
+    assert(attrNode.getMedian() == 5.5);
+    attrNode.setAttrIndex(5);
+    assert(attrNode.getAttrIndex() == 5);
+    node parentNode(3, 2);
+    assert(parentNode.getIndex() == 3);
+    assert(parentNode.getLeft() == -1);
+    assert(parentNode.getRight() == -1);
+    assert(parentNode.getParent() == 2);
+    assert(parentNode.isLeaf());
+    node genNode(4);
+    assert(genNode.getIndex() == 4);
+    assert(genNode.getLeft() == -1);
+    assert(genNode.getRight() == -1);
+    assert(genNode.getParent() == -1);
+    assert(genNode.isLeaf());
+    assert(!genNode.isVisited());
+    genNode.visit();
+    assert(genNode.isVisited());
+    genNode.unvisit();
+    assert(!genNode.isVisited());
+
+
+    //
+    //TEST KDTREE
+    //
+    kdTree testTree(dataset, m, nominal);
+    vector<node> nodeList = testTree.getNodeList();
+    int map[] = {2,0,1,3,4,5,8,6,7};
+    int j=0;
+    for(int i=0; i < nodeList.size(); i++)
+        if(nodeList[i].isLeaf()){
+            vector<float> tempvalues = nodeList[i].getValues();
+            for(int k=0; k < tempvalues.size(); k++)
+                assert(dataset[map[j]*(m+1)+k]==tempvalues[k]);
+            j++;
+        }
+    neighbors = testTree.kNeighborSearch(observation, 2);
+    assert(neighbors.size()==2);
+    for (int j = 0; j < m; j++)
+        assert(neighbors[0][j] == dataset[8 * (m + 1) + j]);
+    for (int j = 0; j < m; j++)
+        assert(neighbors[1][j] == dataset[5 * (m + 1) + j]);
+    neighbors = testTree.kNeighborSearch(observation, 1);
+    assert(neighbors.size()==1);
+    for (int j = 0; j < m; j++)
+        assert(neighbors[0][j] == dataset[8 * (m + 1) + j]);
 }

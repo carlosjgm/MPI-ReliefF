@@ -2,27 +2,35 @@
 #define	KDTREE_H
 
 #include "node.h"
+#include "knnList.h"
 #include <queue>
 #include <stack>
 
 using namespace std;
 
-//
-// functions used for building kdTree
-//
-node kdTree(vector<float> dataset, int m);
-void aux_kdtree(node * root, vector<float> dataset, int attrIndex, int m);
-float findMedian(vector<float> dataset, int attrIndex, int m);
-void swap(float * a, float * b);
-void unvisitNodes(node * root);
+class kdTree {
+public:
 
-//
-// function used for searching in the kdtree
-//
-vector<float> kNeighborSearch(node * root, vector<float> observation, int k, vector<int> nominal, int m);
-void aux_kNeighborSearch(node * root, vector<float> observation, int k, vector<int> nominal, vector<float> * knnlist, vector<float> * distances, float * maxDistance, int * maxIndex, int m);
+    kdTree(vector<float> dataset, int m, vector<bool> nominal);
+    kdTree(vector<node> nodeList, int m, vector<bool> nominal);
+    vector< vector<float> > kNeighborSearch(vector<float> observation, int k);
+    vector<node> getNodeList();
+    string toString();
+    
+private:
 
-string treeToString(node root);
+    void aux_kdtree(int subroot, vector<float> dataset, int attrIndex);
+    void aux_kNeighborSearch(int root, vector<float> observation);
+    float findMedian(vector<float> dataset, int attrIndex);
+    void swap(float * a, float * b);
+    void unvisitNodes();
+
+    int m;
+    vector<bool> nominal;
+    knnList knnlist;
+    vector<node> nodeList;
+    
+};
 
 #endif	/* KDTREE_H */
 

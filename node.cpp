@@ -1,79 +1,91 @@
 #include "node.h"
 
-node::node(vector < float > values) {
+node::node(int nodeIndex, vector < float > values) {
+    this->index = nodeIndex;
     this->values = values;
     this->visited = false;
-    this->left = NULL;
-    this->right = NULL;
-    this->parent = NULL;
+    this->left = -1;
+    this->right = -1;
+    this->parent = -1;
 }
 
-node::node(int attrIndex, float median) {
+node::node(int nodeIndex, int attrIndex, float median) {
+    this->index = nodeIndex;
     this->median = median;
     this->attrIndex = attrIndex;
     this->visited = false;
-    this->left = NULL;
-    this->right = NULL;
-    this->parent = NULL;
+    this->left = -1;
+    this->right = -1;
+    this->parent = -1;
 }
 
-node::node(node * parent) {
+node::node(int nodeIndex, int parent) {
+    this->index = nodeIndex;
     this->parent = parent;
     this->visited = false;
-    this->left = NULL;
-    this->right = NULL;
+    this->left = -1;
+    this->right = -1;
+}
+
+node::node(int nodeIndex) {
+    this->index = nodeIndex;
+    this->visited = false;
+    this->left = -1;
+    this->right = -1;
+    this->parent = -1;
 }
 
 node::node() {
+    this->index = -1;
     this->visited = false;
-    this->left = NULL;
-    this->right = NULL;
-    this->parent = NULL;
+    this->left = -1;
+    this->right = -1;
+    this->parent = -1;
 }
 
-float node::distanceTo(node * target) {
-
-    if (target == NULL || target->getValues().empty()) {
-        return FLT_MAX;
-    } else {
-        vector < float > targetValues = target->getValues();
-        float distance = 0;
-        for (int i = 0; i < targetValues.size(); i++)
-            distance += abs(this->values[i] - targetValues[i]);
-        return distance;
-    }
-}
-
-node * node::getParent() {
+int node::getParent() {
     return this->parent;
 }
 
-void node::addChildren() {
-    node * left = new node(this);
-    this->left = left;
-    node * right = new node(this);
-    this->right = right;
+void node::addLeft(int childIndex) {
+    if(this->left != -1)
+        abort();
+    else
+        this->left = childIndex;
+}
+
+void node::addRight(int childIndex) {
+    if(this->right != -1)
+        abort();
+    else
+        this->right = childIndex;
 }
 
 vector < float > node::getValues() {
-    return this->values;
+    if(this->isLeaf())
+        return this->values;
+    else
+        abort();
 }
 
 void node::setValues(vector < float > values) {
-    vector< float >().swap(this->values);
     this->values = values;
 }
 
-node * node::getLeft() {
+int node::getIndex() {
+    return this->index;
+}
+
+int node::getLeft() {
     return this->left;
 }
 
-node * node::getRight() {
+int node::getRight() {
     return this->right;
 }
 
 bool node::isLeaf() {
-    return this->left == NULL && this->right == NULL;
+    return this->left == -1 && this->right == -1;
 }
 
 float node::getMedian() {
