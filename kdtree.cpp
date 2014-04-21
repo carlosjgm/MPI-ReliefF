@@ -199,15 +199,39 @@ void kdTree::aux_kNeighborSearch(int root, vector<float> observation) {
         bool checkRight = true;
         if (this->knnlist.isFull()) {
             float subTreeMinDistToObs;
-            if(this->nominal[currNode.getAttrIndex()])
+            float leftMinDistToObs;
+            float rightMinDistToObs;
+            if (this->nominal[currNode.getAttrIndex()]) {
                 subTreeMinDistToObs = 1;
-            else
-                subTreeMinDistToObs = abs(observation[currNode.getAttrIndex()] - currNode.getMedian());
-            
-            if (subTreeMinDistToObs >= this->knnlist.getMaxDistance()) {
-                checkRight = false;
-                checkLeft = false;
+                if (subTreeMinDistToObs >= this->knnlist.getMaxDistance()) {
+                    checkRight = false;
+                    checkLeft = false;
+                }
             }
+            else{
+                subTreeMinDistToObs = observation[currNode.getAttrIndex()] - currNode.getMedian();
+                
+                if(subTreeMinDistToObs <= 0) {
+                    subTreeMinDistToObs = -subTreeMinDistToObs;
+                    if (subTreeMinDistToObs >= this->knnlist.getMaxDistance())
+                        checkRight = false;
+                    leftMinDistToObs = observation[currNode.getAttrIndex()];
+                    leftMinDistToObs = leftMinDistToObs <= subTreeMinDistToObs ? leftMinDistToObs : subTreeMinDistToObs;
+                    if (leftMinDistToObs >= this->knnlist.getMaxDistance())
+                        checkLeft = false;
+                }
+                
+                else {
+                    if (subTreeMinDistToObs >= this->knnlist.getMaxDistance())
+                        checkLeft = false;
+                    rightMinDistToObs = 1 - observation[currNode.getAttrIndex()];
+                    rightMinDistToObs = rightMinDistToObs <= subTreeMinDistToObs ? rightMinDistToObs : subTreeMinDistToObs;
+                    if (rightMinDistToObs >= this->knnlist.getMaxDistance())
+                        checkRight = false;
+                }
+            }
+            
+            
         }
         
         //mark node as visited

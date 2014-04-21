@@ -3,7 +3,9 @@
 node::node(int nodeIndex, vector < float > values) {
     this->index = nodeIndex;
     this->values = values;
-    this->visited = false;
+    this->median = -1;
+    this->attrIndex = -1;
+    this->visited = 0;
     this->left = -1;
     this->right = -1;
     this->parent = -1;
@@ -13,7 +15,7 @@ node::node(int nodeIndex, int attrIndex, float median) {
     this->index = nodeIndex;
     this->median = median;
     this->attrIndex = attrIndex;
-    this->visited = false;
+    this->visited = 0;
     this->left = -1;
     this->right = -1;
     this->parent = -1;
@@ -22,25 +24,43 @@ node::node(int nodeIndex, int attrIndex, float median) {
 node::node(int nodeIndex, int parent) {
     this->index = nodeIndex;
     this->parent = parent;
-    this->visited = false;
+    this->visited = 0;
     this->left = -1;
     this->right = -1;
+    this->median = -1;
+    this->attrIndex = -1;
 }
 
 node::node(int nodeIndex) {
     this->index = nodeIndex;
-    this->visited = false;
+    this->visited = 0;
     this->left = -1;
     this->right = -1;
     this->parent = -1;
+    this->median = -1;
+    this->attrIndex = -1;
+}
+
+node::node(int nodeIndex, int parent, int left, int right, int attrIndex, float median, float values[], int n) {
+    this->index = nodeIndex;
+    this->left = left;
+    this->right = right;
+    this->parent = parent;
+    this->median = median;
+    this->attrIndex = attrIndex;
+    for(int i=0; i < n; i++)
+        this->values.push_back(values[i]);
+    this->visited = 0;
 }
 
 node::node() {
     this->index = -1;
-    this->visited = false;
+    this->visited = 0;
     this->left = -1;
     this->right = -1;
     this->parent = -1;
+    this->median = -1;
+    this->attrIndex = -1;
 }
 
 int node::getParent() {
@@ -89,7 +109,7 @@ bool node::isLeaf() {
 }
 
 float node::getMedian() {
-    return median;
+    return this->median;
 }
 
 int node::getAttrIndex() {
@@ -105,15 +125,15 @@ void node::setAttrIndex(int attrIndex) {
 }
 
 void node::visit() {
-    this->visited = true;
+    this->visited = 1;
 }
 
 void node::unvisit() {
-    this->visited = false;
+    this->visited = 0;
 }
 
 bool node::isVisited() {
-    return this->visited;
+    return this->visited==1;
 }
 
 string node::toString() {
@@ -133,3 +153,4 @@ string node::toString() {
 
     return result;
 }
+

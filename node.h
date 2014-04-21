@@ -18,15 +18,16 @@ public:
     node(int nodeIndex, int attrIndex, float median);
     node(int nodeIndex, int parent);
     node(int nodeIndex);
-    node(); 
+    node(int nodeIndex, int parent, int left, int right, int attrIndex, float median, float values[], int n);
+    node();
     int getParent();
     void addLeft(int childIndex);
     void addRight(int childIndex);
-    vector < float > getValues();     
-    void setValues(vector < float > values);    
+    vector < float > getValues();
+    void setValues(vector < float > values);
     int getIndex();
     int getLeft();
-    int getRight();    
+    int getRight();
     bool isLeaf();
     float getMedian();
     int getAttrIndex();
@@ -43,12 +44,12 @@ private:
     int parent;
     int left;
     int right;
+    int attrIndex;
+    int visited;
+    float median;
+    
     vector < float > values;
 
-    float median;
-    int attrIndex;
-
-    bool visited;
 };
 
 #endif	/* NODE_H */
